@@ -1,0 +1,7 @@
+requests
+pytest
+aiohttp
+pyyaml
+pymongo
+aiomongodel
+motor
