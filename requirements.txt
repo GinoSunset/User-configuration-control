@@ -1,5 +1,6 @@
 requests
 pytest
+pytest-asyncio
 aiohttp
 pyyaml
 pymongo

@@ -1,4 +1,4 @@
 # Our default configuration file
 
 site_name: "Control configure site"
-database_uri: mongodb://localhost:27017/user
+database_uri: mongodb://localhost:27017
