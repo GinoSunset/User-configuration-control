@@ -3,6 +3,7 @@ from .middleware import token_auth_middleware
 from .auth import check_token
 from aiohttp import web
 from .routes import setup_routes
+from pathlib import Path
 import motor.motor_asyncio
 
 
@@ -17,6 +18,10 @@ async def create_app(config: dict):
 
 async def on_start(app):
     config = app["config"]
+    media_dir = Path(config["media_dir"])
+    if not media_dir.exists():
+        media_dir.mkdir()
+    app["media_dir"] = media_dir
     app["db"] = motor.motor_asyncio.AsyncIOMotorClient().control_conf
 
 
