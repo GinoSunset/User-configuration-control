@@ -6,8 +6,6 @@ Requirements
 -----------
 * Python 3.6
 * requests
-* pytest
-* pytest-asyncio
 * aiohttp
 * pyyaml
 * pymongo
@@ -45,3 +43,16 @@ configuration file has yaml format:
 - `database_uri` - url format path to db by default  mongodb://localhost:27017
 - `media_dir` - folder to save users file by defalt is  __media__ in project folder
 
+
+Testing
+------------
+install via pip:
+* pytest
+* pytest-asyncio
+```console
+pip install pytest pytest-asyncio
+```
+in project dir run pytest:
+```console
+python -m pytest
+```
