@@ -23,11 +23,23 @@ class TestAuthCases:
 
 
 class TestFilesViewCases:
+    # TODO: remove files media after save
     def test_fetch_list_files(self, create_user):
         assert False
 
-    def test_file_with_eq_name(self):
-        assert False
+    @pytest.mark.asyncio
+    def test_file_with_eq_name(self, create_user):
+        requests.post(
+            "http://localhost:8000/api/v1/files/",
+            files={"configuration": ("test.conf", "test file content".encode())},
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        r = requests.post(
+            "http://localhost:8000/api/v1/files/",
+            files={"configuration": ("test.conf", "test file content".encode())},
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status_code == 201
 
     @pytest.mark.asyncio
     def test_upload_files(self, create_user):
