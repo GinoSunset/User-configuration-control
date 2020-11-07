@@ -1,9 +1,7 @@
 import aiohttp
-from pathlib import Path
 import string
 import random
-
-from requests.api import request
+from app.db import Files
 
 
 async def index(request):
@@ -22,34 +20,41 @@ def get_available_file_name(media, filename):
 
 
 async def write_to_file(path_to_file, field):
-    size = 0
     with open(path_to_file, "wb") as f:
         while True:
-            chunk = await field.read_chunk()  # 8192 bytes by default.
+            chunk = await field.read_chunk()
             if not chunk:
                 break
-            size += len(chunk)
             f.write(chunk)
-    return size
 
 
 async def upload_file(request):
     reader = await request.multipart()
     field = await reader.next()
     filename = field.filename
-    media = request.app["media_dir"]
-    path_to_file = get_available_file_name(media, filename)
-    size = await write_to_file(path_to_file, field)
 
+    user_files_name = [f.filename for f in request["user"].files]
+    if filename not in user_files_name:
+        media = request.app["media_dir"]
+        path_to_file = get_available_file_name(media, filename)
+        await write_to_file(path_to_file, field)
+        file_model = Files(real_path=path_to_file, filename=filename)
+        request["user"].files.extend([file_model])
+        await request["user"].save(request.app["db"])
+        return aiohttp.web.json_response(
+            {"files": [f.filename for f in request["user"].files]},
+            status=201,
+        )
     return aiohttp.web.json_response(
-        {"text": f"{filename} sized of {size} successfully save"},
-        status=201,
+        {"error": f"configuration {filename} already exist"}, status=409
     )
 
 
 class FilesView(aiohttp.web.View):
     async def get(self):
-        return aiohttp.web.json_response({"files": None})
+        return aiohttp.web.json_response(
+            {"files": [f.filename for f in self.request["user"].files]}
+        )
 
     async def post(self):
         return await upload_file(self.request)

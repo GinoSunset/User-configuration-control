@@ -26,4 +26,4 @@ async def on_start(app):
 
 
 async def on_shutdown(app):
-    await app["db"].close()
+    pass

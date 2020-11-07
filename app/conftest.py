@@ -11,7 +11,7 @@ def setup_db():
 
 @pytest.fixture
 async def create_user(setup_db):
-    user = {"name": "Test user", "api_key": "TestapiKey"}
+    user = {"name": "Test user", "api_key": "TestapiKey", "files": []}
     await setup_db.users.insert_one(user)
     yield user
-    await setup_db.users.delete_one(user)
+    await setup_db.users.delete_one({"name": user["name"]})
