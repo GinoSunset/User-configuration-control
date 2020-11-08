@@ -15,6 +15,9 @@ def token_auth_middleware(
         except KeyError:
             raise web.HTTPUnauthorized(
                 reason="Missing authorization header",
+                headers={
+                    "WWW-Authenticate": 'Token realm="Access to the staging site"',
+                },
             )
         except ValueError:
             raise web.HTTPForbidden(
@@ -34,7 +37,12 @@ def token_auth_middleware(
         if user:
             request[request_property] = user
         else:
-            raise web.HTTPForbidden(reason="Token doesn't exist")
+            raise web.HTTPForbidden(
+                reason="Token doesn't exist",
+                headers={
+                    "WWW-Authenticate": 'Token realm="Access to the staging site"',
+                },
+            )
 
         return await handler(request)
 

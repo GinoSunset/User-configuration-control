@@ -1,3 +1,4 @@
+from app.conftest import create_user
 import pytest
 import requests
 import json
@@ -81,3 +82,23 @@ class TestFilesViewCases:
         )
         saved_user = await setup_db.users.find_one({"name": create_user["name"]})
         assert len(saved_user.get("files", [])) == len(create_user.get("files", [])) + 1
+
+
+class TestFileDetailsViewCases:
+    @pytest.mark.asyncio
+    def test_get_file(self, create_user_and_files):
+        user, user_file = create_user_and_files
+        r = requests.get(
+            f"http://localhost:8000/api/v1/files/{user['files'][0]['filename']}",
+            headers={"Authorization": f"Token {user['api_key']}"},
+        )
+        assert r.status_code == 200
+        assert r.text == user_file.read_text()
+
+    @pytest.mark.asyncio
+    def test_not_exists_file(self, create_user):
+        r = requests.get(
+            f"http://localhost:8000/api/v1/files/not_exists_file",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status_code == 404

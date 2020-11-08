@@ -15,3 +15,17 @@ async def create_user(setup_db):
     await setup_db.users.insert_one(user)
     yield user
     await setup_db.users.delete_one({"name": user["name"]})
+
+
+@pytest.fixture
+async def create_user_and_files(setup_db, tmp_path):
+    f = tmp_path / "some_confqwerty.ini"
+    f.write_text("[ini]\nSome=Some")
+    user = {
+        "name": "Test user",
+        "api_key": "TestapiKey",
+        "files": [{"real_path": f.as_posix(), "filename": "some_conf.ini"}],
+    }
+    await setup_db.users.insert_one(user)
+    yield user, f
+    await setup_db.users.delete_one({"name": user["name"]})

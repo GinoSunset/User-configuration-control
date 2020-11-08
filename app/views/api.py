@@ -67,3 +67,24 @@ class FilesView(aiohttp.web.View):
 
     async def post(self):
         return await upload_file(self.request)
+
+
+async def download_file(request):
+    user = request["user"]
+    filename = request.match_info["filename"]
+    file_path = user.get_real_path_by_filename(filename)
+    if file_path is None:
+        return aiohttp.web.json_response(
+            {"error": f"configuration {filename} not exist"}, status=404
+        )
+    with open(file_path, "rb") as f:
+        data = f.read()
+    return aiohttp.web.Response(
+        body=data,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+class FileDetailsView(aiohttp.web.View):
+    async def get(self):
+        return await download_file(self.request)
