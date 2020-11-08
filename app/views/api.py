@@ -28,6 +28,19 @@ async def write_to_file(path_to_file, field):
             f.write(chunk)
 
 
+async def save_file_to_fs(request, filename, field):
+    media = request.app["media_dir"]
+    path_to_file = get_available_file_name(media, filename)
+    await write_to_file(path_to_file, field)
+    return path_to_file
+
+
+async def save_file_to_db(request, filename, path_to_file):
+    file_model = Files(real_path=path_to_file, filename=filename)
+    request["user"].files.extend([file_model])
+    await request["user"].save(request.app["db"])
+
+
 async def upload_file(request):
     reader = await request.multipart()
     field = await reader.next()
@@ -35,12 +48,8 @@ async def upload_file(request):
 
     user_files_name = [f.filename for f in request["user"].files]
     if filename not in user_files_name:
-        media = request.app["media_dir"]
-        path_to_file = get_available_file_name(media, filename)
-        await write_to_file(path_to_file, field)
-        file_model = Files(real_path=path_to_file, filename=filename)
-        request["user"].files.extend([file_model])
-        await request["user"].save(request.app["db"])
+        path_to_file = save_file_to_fs(request, filename, field)
+        save_file_to_db(request, filename, path_to_file)
         return aiohttp.web.json_response(
             {"files": [f.filename for f in request["user"].files]},
             status=201,
