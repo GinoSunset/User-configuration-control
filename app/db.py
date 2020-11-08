@@ -10,6 +10,9 @@ class User(Document):
     class Meta:
         collection = "users"
 
+    def get_list_of_file_name(self):
+        return [f.filename for f in self.files]
+
 
 class Files(EmbeddedDocument):
     real_path = StrField(required=True)

@@ -37,8 +37,9 @@ async def save_file_to_fs(request, filename, field):
 
 async def save_file_to_db(request, filename, path_to_file):
     file_model = Files(real_path=path_to_file, filename=filename)
-    request["user"].files.extend([file_model])
-    await request["user"].save(request.app["db"])
+    await request["user"].update(
+        request.app["db"], {"$addToSet": {"files": file_model.to_mongo()}}
+    )
 
 
 async def upload_file(request):
@@ -46,10 +47,9 @@ async def upload_file(request):
     field = await reader.next()
     filename = field.filename
 
-    user_files_name = [f.filename for f in request["user"].files]
-    if filename not in user_files_name:
-        path_to_file = save_file_to_fs(request, filename, field)
-        save_file_to_db(request, filename, path_to_file)
+    if filename not in request["user"].get_list_of_file_name():
+        path_to_file = await save_file_to_fs(request, filename, field)
+        await save_file_to_db(request, filename, path_to_file)
         return aiohttp.web.json_response(
             {"files": [f.filename for f in request["user"].files]},
             status=201,
@@ -62,7 +62,7 @@ async def upload_file(request):
 class FilesView(aiohttp.web.View):
     async def get(self):
         return aiohttp.web.json_response(
-            {"files": [f.filename for f in self.request["user"].files]}
+            {"files": self.request["user"].get_list_of_file_name()}
         )
 
     async def post(self):
