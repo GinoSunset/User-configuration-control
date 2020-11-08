@@ -47,7 +47,7 @@ async def upload_file(request):
     field = await reader.next()
     filename = field.filename
 
-    if filename not in request["user"].get_list_of_file_name():
+    if filename not in request["user"].get_list_of_file_names():
         path_to_file = await save_file_to_fs(request, filename, field)
         await save_file_to_db(request, filename, path_to_file)
         return aiohttp.web.json_response(
@@ -62,7 +62,7 @@ async def upload_file(request):
 class FilesView(aiohttp.web.View):
     async def get(self):
         return aiohttp.web.json_response(
-            {"files": self.request["user"].get_list_of_file_name()}
+            {"files": self.request["user"].get_list_of_file_names()}
         )
 
     async def post(self):

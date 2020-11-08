@@ -10,7 +10,7 @@ class User(Document):
     class Meta:
         collection = "users"
 
-    def get_list_of_file_name(self):
+    def get_list_of_file_names(self):
         return [f.filename for f in self.files]
 
 
