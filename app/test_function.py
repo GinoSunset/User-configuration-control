@@ -102,3 +102,14 @@ class TestFileDetailsViewCases:
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status_code == 404
+
+
+class TestCreateUserViewCases:
+    @pytest.mark.asyncio
+    def test_api_create_user(self, create_name_for_temp_user):
+        r = requests.post(
+            f"http://localhost:8000/api/v1/users/",
+            data={"name": create_name_for_temp_user},
+        )
+        assert r.status_code == 201
+        assert "api_key" in json.loads(r.content).keys()

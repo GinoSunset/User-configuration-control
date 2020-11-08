@@ -1,7 +1,10 @@
 import aiohttp
 import string
 import random
-from app.db import Files
+
+from aiomongodel.errors import DuplicateKeyError
+
+from app.db import Files, User
 
 
 async def index(request):
@@ -89,3 +92,23 @@ async def download_file(request):
 class FileDetailsView(aiohttp.web.View):
     async def get(self):
         return await download_file(self.request)
+
+
+class UsersView(aiohttp.web.View):
+    async def create_user(self):
+        data = await self.request.post()
+        user = User(name=data["name"])
+        user.api_key = user.generate_api_key()
+        try:
+            await user.save(self.request.app["db"])
+        except DuplicateKeyError:
+            return aiohttp.web.json_response(
+                {"error": f"user already exists"}, status=409
+            )
+        return aiohttp.web.json_response(
+            user.to_json(),
+            status=201,
+        )
+
+    async def post(self):
+        return await self.create_user()

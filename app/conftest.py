@@ -18,6 +18,13 @@ async def create_user(setup_db):
 
 
 @pytest.fixture
+async def create_name_for_temp_user(setup_db):
+    name = "TempUser"
+    yield name
+    await setup_db.users.delete_one({"name": name})
+
+
+@pytest.fixture
 async def create_user_and_files(setup_db, tmp_path):
     f = tmp_path / "some_confqwerty.ini"
     f.write_text("[ini]\nSome=Some")

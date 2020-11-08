@@ -1,14 +1,23 @@
-from aiohttp.web_middlewares import middleware
-from .middleware import token_auth_middleware
-from .auth import check_token
-from aiohttp import web
-from .routes import setup_routes
 from pathlib import Path
+
 import motor.motor_asyncio
+from aiohttp import web
+from aiohttp.web_middlewares import middleware
+
+from .auth import check_token
+from .db import User
+from .middleware import token_auth_middleware
+from .routes import setup_routes
 
 
 async def create_app(config: dict):
-    app = web.Application(middlewares=[token_auth_middleware(check_token=check_token)])
+    app = web.Application(
+        middlewares=[
+            token_auth_middleware(
+                check_token=check_token, exclude_routes="/api/v1/users/"
+            )
+        ]
+    )
     app["config"] = config
     setup_routes(app)
     app.on_startup.append(on_start)
@@ -25,6 +34,7 @@ async def on_start(app):
     app["db"] = motor.motor_asyncio.AsyncIOMotorClient(
         config["database_uri"]
     ).control_conf
+    await User.q(app["db"]).create_indexes()
     print(f"media dir is [{media_dir.as_posix()}]")
     print(f"db uri is [{config['database_uri']}]")
 

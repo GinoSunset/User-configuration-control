@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 from aiohttp import web
 from aiomongodel.errors import DocumentNotFoundError
 
@@ -7,9 +7,12 @@ def token_auth_middleware(
     check_token: Callable,
     auth_scheme: str = "Token",
     request_property: str = "user",
+    exclude_routes: List[str] = None,
 ):
     @web.middleware
     async def middleware(request, handler):
+        if request.path in exclude_routes:
+            return await handler(request)
         try:
             scheme, token = request.headers["Authorization"].strip().split(" ")
         except KeyError:
