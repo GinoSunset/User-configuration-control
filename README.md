@@ -15,13 +15,10 @@ Requirements
 
 API
 -----------
-only auth user may request api. User token create ony via db.
 
-API:
 * `POST /api/v1/users/` - data = `'name=12345'` create user and generate api token. Return User model: json  Username and Token. Example:
     ```console:
         curl --location --request POST 'http://localhost:8000/api/v1/users/' \
-        --header 'Content-Type: application/json' \
         --form 'name=12345'
     ```
 * `GET /api/v1/files/` - returns a list of files for the authorized user
@@ -38,6 +35,13 @@ API:
 
 How to run
 ----------
+1. Up docker-compose 
+    ```bash
+    docker-compose up
+    ```
+or: 
+
+
 1. Run mongo (you may use docker for this):
     ```console
     docker run --rm -p 27017:27017 -d mongo
