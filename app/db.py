@@ -1,3 +1,4 @@
+from pathlib import Path
 from aiomongodel import Document, StrField, ListField, EmbDocField, EmbeddedDocument
 
 
@@ -16,7 +17,7 @@ class User(Document):
     def get_real_path_by_filename(self, filename):
         user_file = list(filter(lambda x: x.filename == filename, self.files))
         if user_file:
-            return user_file[0].real_path
+            return Path(user_file[0].real_path)
         return None
 
 

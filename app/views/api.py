@@ -73,7 +73,8 @@ async def download_file(request):
     user = request["user"]
     filename = request.match_info["filename"]
     file_path = user.get_real_path_by_filename(filename)
-    if file_path is None:
+
+    if (file_path is None) or (not file_path.exists()):
         return aiohttp.web.json_response(
             {"error": f"configuration {filename} not exist"}, status=404
         )
