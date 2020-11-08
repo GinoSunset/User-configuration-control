@@ -13,6 +13,22 @@ Requirements
 * motor
 * mongo
 
+API
+-----------
+only auth user may request api. User token create ony via db.
+
+API:
+* `GET /api/v1/files/` - returns a list of files for the authorized user
+* `POST /api/v1/files/ ` data =`files={"configuration": ("filename", "binar data"}` - save configuration for the authorized user. Data is Multipart/form-data file. If file saved return 201 status code and  list of files for the authorized user. Example: 
+    ```python
+    import requests
+    requests.post(
+                "http://localhost:8000/api/v1/files/",
+                files={"configuration": ("MyConf.conf", "[Main]\nEntryPoint=entry.py".encode())},
+                headers={"Authorization": f"Token MySercretToken"},
+            )
+    ```
+* `GET /api/v1/files/<name_file_to_download>` - return file for the authorized user is exists
 
 How to run
 ----------
