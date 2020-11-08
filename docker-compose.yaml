@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  db:
+    image: mongo
+
+  web:
+    build: .
+    command: python entry.py
+    environment:
+      - DB=mongodb://db:27017
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db

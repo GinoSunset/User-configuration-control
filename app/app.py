@@ -22,7 +22,11 @@ async def on_start(app):
     if not media_dir.exists():
         media_dir.mkdir()
     app["media_dir"] = media_dir
-    app["db"] = motor.motor_asyncio.AsyncIOMotorClient().control_conf
+    app["db"] = motor.motor_asyncio.AsyncIOMotorClient(
+        config["database_uri"]
+    ).control_conf
+    print(f"media dir is [{media_dir.as_posix()}]")
+    print(f"db uri is [{config['database_uri']}]")
 
 
 async def on_shutdown(app):

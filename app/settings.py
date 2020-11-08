@@ -1,5 +1,6 @@
 from pathlib import Path
 import yaml
+import os
 
 __all__ = ("load_config",)
 
@@ -12,7 +13,8 @@ def load_config(config_file=None):
     cf_dict = {}
     if config_file:
         cf_dict = yaml.safe_load(config_file)
-
+    if os.environ.get("DB", None):
+        config["database_uri"] = os.environ["DB"]
     config.update(**cf_dict)
 
     return config
