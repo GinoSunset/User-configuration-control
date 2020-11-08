@@ -18,6 +18,12 @@ API
 only auth user may request api. User token create ony via db.
 
 API:
+* `POST /api/v1/users/` - data = `'name=12345'` create user and generate api token. Return User model: json  Username and Token. Example:
+    ```console:
+        curl --location --request POST 'http://localhost:8000/api/v1/users/' \
+        --header 'Content-Type: application/json' \
+        --form 'name=12345'
+    ```
 * `GET /api/v1/files/` - returns a list of files for the authorized user
 * `POST /api/v1/files/ ` data =`files={"configuration": ("filename", "binar data"}` - save configuration for the authorized user. Data is Multipart/form-data file. If file saved return 201 status code and  list of files for the authorized user. Example: 
     ```python
