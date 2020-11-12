@@ -1,12 +1,16 @@
 from app.settings import load_config
 import pytest
+from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorClient
 
 
 @pytest.fixture
 def setup_db():
-    conf = load_config()
-    return AsyncIOMotorClient(conf["database_uri"]).control_conf
+    local_settings = open("local.yaml", "r") if Path("local.yaml").exists() else None
+    conf = load_config(local_settings)
+    yield AsyncIOMotorClient(conf["database_uri"]).control_conf
+    if local_settings:
+        local_settings.close()
 
 
 @pytest.fixture

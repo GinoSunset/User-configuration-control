@@ -1,4 +1,3 @@
-from app.conftest import create_user
 import pytest
 import requests
 import json

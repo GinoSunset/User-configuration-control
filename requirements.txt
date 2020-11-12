@@ -6,3 +6,4 @@ pyyaml
 pymongo
 aiomongodel
 motor
+dnspython

@@ -3,6 +3,7 @@
 __pycache__
 *cache
 .vscode
+.env
 .idea
 venv
 local.yaml
