@@ -1,3 +1,5 @@
+from cgi import test
+from _pytest import config
 from app.settings import load_config
 import pytest
 from pathlib import Path
@@ -5,12 +7,18 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 
 @pytest.fixture
-def setup_db():
-    local_settings = open("local.yaml", "r") if Path("local.yaml").exists() else None
-    conf = load_config(local_settings)
-    yield AsyncIOMotorClient(conf["database_uri"]).control_conf
-    if local_settings:
-        local_settings.close()
+def test_conf():
+    local_settings_ = open("local.yaml", "r") if Path("local.yaml").exists() else None
+    conf = load_config(local_settings_)
+    conf["db_name"] = f'{conf["db_name"]}_test'
+    return conf
+
+
+@pytest.fixture
+async def setup_db(test_conf):
+    db = AsyncIOMotorClient(test_conf["database_uri"])
+    yield db[test_conf["db_name"]]
+    await db.drop_database(test_conf["database_uri"].split("/")[-1])
 
 
 @pytest.fixture
@@ -19,6 +27,7 @@ async def create_user(setup_db):
     await setup_db.users.insert_one(user)
     yield user
     await setup_db.users.delete_one({"name": user["name"]})
+    await setup_db.drop_collection("users")
 
 
 @pytest.fixture

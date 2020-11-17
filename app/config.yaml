@@ -2,4 +2,5 @@
 
 site_name: "Control configure site"
 database_uri: mongodb://localhost:27017
+db_name: user_conf
 media_dir: "media"

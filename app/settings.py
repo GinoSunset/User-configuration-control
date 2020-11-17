@@ -15,6 +15,7 @@ def load_config(config_file=None):
         cf_dict = yaml.safe_load(config_file)
     if os.environ.get("DB", None):
         config["database_uri"] = os.environ["DB"]
-    config.update(**cf_dict)
+    if cf_dict:
+        config.update(**cf_dict)
 
     return config
