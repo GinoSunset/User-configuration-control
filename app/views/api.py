@@ -112,3 +112,10 @@ class UsersView(aiohttp.web.View):
 
     async def post(self):
         return await self.create_user()
+
+    async def get(self):
+        users = [
+            user.to_json_without_api_key()
+            async for user in User.q(self.request.app["db"]).find({})
+        ]
+        return aiohttp.web.json_response(users)

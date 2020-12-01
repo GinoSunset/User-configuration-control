@@ -163,3 +163,22 @@ class TestCreateUserViewCases:
         assert r.status == 201
         text = await r.text()
         assert "api_key" in json.loads(text).keys()
+
+
+class TestListUsersFileCases:
+    async def test_permision_on_list(self, create_user, aiohttp_client, test_conf):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+        r = await client.get(f"/api/v1/users/")
+        assert r.status == 401
+
+    async def test_list_of_user(self, create_user, aiohttp_client, test_conf):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+        r = await client.get(
+            f"/api/v1/users/",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 200
+        text = await r.text()
+        assert [{"name": f"{create_user['name']}"}] == json.loads(text)

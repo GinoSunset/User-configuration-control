@@ -31,6 +31,9 @@ class User(Document):
     def to_json(self):
         return {"name": self.name, "api_key": self.api_key}
 
+    def to_json_without_api_key(self):
+        return {"name": self.name}
+
 
 class Files(EmbeddedDocument):
     real_path = StrField(required=True)

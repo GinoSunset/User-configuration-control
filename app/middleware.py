@@ -3,15 +3,19 @@ from aiohttp import web
 from aiomongodel.errors import DocumentNotFoundError
 
 
+def is_exclude_requests(request, exclude_method_routes):
+    return (request.method, request.path) in exclude_method_routes
+
+
 def token_auth_middleware(
     check_token: Callable,
     auth_scheme: str = "Token",
     request_property: str = "user",
-    exclude_routes: List[str] = None,
+    exclude_method_routes: List[str] = None,
 ):
     @web.middleware
     async def middleware(request, handler):
-        if request.path in exclude_routes:
+        if is_exclude_requests(request, exclude_method_routes):
             return await handler(request)
         try:
             scheme, token = request.headers["Authorization"].strip().split(" ")

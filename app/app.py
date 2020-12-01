@@ -14,7 +14,10 @@ async def create_app(config: dict):
     app = web.Application(
         middlewares=[
             token_auth_middleware(
-                check_token=check_token, exclude_routes="/api/v1/users/"
+                check_token=check_token,
+                exclude_method_routes=[
+                    ("POST", "/api/v1/users/"),
+                ],
             )
         ]
     )
