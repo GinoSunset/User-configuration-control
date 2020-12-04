@@ -1,11 +1,19 @@
 import uuid
 from pathlib import Path
-
-from aiomongodel import Document, EmbDocField, EmbeddedDocument, ListField, StrField
+from bson import ObjectId
+from aiomongodel import (
+    Document,
+    EmbDocField,
+    EmbeddedDocument,
+    ListField,
+    StrField,
+    ObjectIdField,
+)
 from pymongo import ASCENDING, IndexModel
 
 
 class User(Document):
+    _id = ObjectIdField(default=lambda: ObjectId())
     api_key = StrField(required=True)
     name = StrField(required=True)
     files = ListField(EmbDocField("app.db.Files"), default=lambda: [])
@@ -13,7 +21,7 @@ class User(Document):
     class Meta:
         collection = "users"
         indexes = [
-            IndexModel([("name", ASCENDING)], unique=True),
+            IndexModel([("api_key", ASCENDING)], unique=True),
         ]
 
     def get_list_of_file_names(self):
@@ -32,7 +40,7 @@ class User(Document):
         return {"name": self.name, "api_key": self.api_key}
 
     def to_json_without_api_key(self):
-        return {"name": self.name}
+        return {"name": self.name, "id": str(self._id)}
 
 
 class Files(EmbeddedDocument):

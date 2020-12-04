@@ -2,7 +2,9 @@ import aiohttp
 import string
 import random
 
-from aiomongodel.errors import DuplicateKeyError
+from aiomongodel.errors import DuplicateKeyError, DocumentNotFoundError
+from bson.errors import InvalidId
+from bson.objectid import ObjectId
 
 from app.db import Files, User
 
@@ -119,3 +121,19 @@ class UsersView(aiohttp.web.View):
             async for user in User.q(self.request.app["db"]).find({})
         ]
         return aiohttp.web.json_response(users)
+
+
+class UsersViewDetailsView(aiohttp.web.View):
+    async def get(self):
+        id = self.request.match_info["user_id"]
+        try:
+            user_id = ObjectId(id)
+        except InvalidId:
+            return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
+        try:
+            user = await User.q(self.request.app["db"]).get(user_id)
+        except DocumentNotFoundError:
+            return aiohttp.web.json_response(
+                {"error": f"user with id {user_id} not exist"}, status=404
+            )
+        return aiohttp.web.json_response(user.to_json())

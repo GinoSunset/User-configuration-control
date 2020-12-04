@@ -181,4 +181,28 @@ class TestListUsersFileCases:
         )
         assert r.status == 200
         text = await r.text()
-        assert [{"name": f"{create_user['name']}"}] == json.loads(text)
+        assert [
+            {"name": create_user["name"], "id": str(create_user["_id"])}
+        ] == json.loads(text)
+
+    async def test_details_user_api(self, create_user, aiohttp_client, test_conf):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+
+        r = await client.get(
+            f"/api/v1/users/{str(create_user['_id'])}",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 200
+
+    async def test_details_user_api_bad_id(
+        self, create_user, aiohttp_client, test_conf
+    ):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+
+        r = await client.get(
+            f"/api/v1/users/{str(create_user['_id'])}-bad-format",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 400

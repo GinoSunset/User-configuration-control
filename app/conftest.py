@@ -1,5 +1,4 @@
-from cgi import test
-from _pytest import config
+import uuid
 from app.settings import load_config
 import pytest
 from pathlib import Path
@@ -23,7 +22,7 @@ async def setup_db(test_conf):
 
 @pytest.fixture
 async def create_user(setup_db):
-    user = {"name": "Test user", "api_key": "TestapiKey", "files": []}
+    user = {"name": "Test user", "api_key": f"{str(uuid.uuid4())}", "files": []}
     await setup_db.users.insert_one(user)
     yield user
     await setup_db.users.delete_one({"name": user["name"]})
