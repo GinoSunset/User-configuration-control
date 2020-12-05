@@ -1,12 +1,15 @@
 import aiohttp
 import string
 import random
+import hashlib
+import os
+from pathlib import Path
 
 from aiomongodel.errors import DuplicateKeyError, DocumentNotFoundError
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
 
-from app.db import Files, User
+from app.db import Configuration, User
 
 
 async def index(request):
@@ -24,27 +27,32 @@ def get_available_file_name(media, filename):
     return path_to_file
 
 
-async def write_to_file(path_to_file, field):
+async def write_to_file_with_calc_hash(path_to_file, field, hash_func):
+    h = hashlib.new(hash_func)
     with open(path_to_file, "wb") as f:
         while True:
             chunk = await field.read_chunk()
             if not chunk:
                 break
+            h.update(chunk)
             f.write(chunk)
+    return h.hexdigest()
 
 
 async def save_file_to_fs(request, filename, field):
     media = request.app["media_dir"]
+    hash_func = request.app["config"]["hash_func"]
     path_to_file = get_available_file_name(media, filename)
-    await write_to_file(path_to_file, field)
-    return path_to_file
+    hash = await write_to_file_with_calc_hash(path_to_file, field, hash_func)
+    return path_to_file, hash
 
 
-async def save_file_to_db(request, filename, path_to_file):
-    file_model = Files(real_path=path_to_file, filename=filename)
-    await request["user"].update(
-        request.app["db"], {"$addToSet": {"files": file_model.to_mongo()}}
+async def save_file_to_db(request, filename, path_to_file, hash):
+    configuration_model = Configuration(
+        real_path=path_to_file, filename=filename, hash=hash
     )
+    await configuration_model.save(request.app["db"])
+    return configuration_model
 
 
 async def upload_file(request):
@@ -52,48 +60,63 @@ async def upload_file(request):
     field = await reader.next()
     filename = field.filename
 
-    if filename not in request["user"].get_list_of_file_names():
-        path_to_file = await save_file_to_fs(request, filename, field)
-        await save_file_to_db(request, filename, path_to_file)
+    path_to_file, hash = await save_file_to_fs(request, filename, field)
+    try:
+        configuration = await save_file_to_db(request, filename, path_to_file, hash)
+    except DuplicateKeyError:
+        path_to_file.unlink()
         return aiohttp.web.json_response(
-            {"files": [f.filename for f in request["user"].files]},
-            status=201,
+            {"error": f"configuration {filename} already exist"}, status=409
         )
     return aiohttp.web.json_response(
-        {"error": f"configuration {filename} already exist"}, status=409
+        {"configuration": configuration.to_json()},
+        status=201,
     )
 
 
-class FilesView(aiohttp.web.View):
+class СonfigurationsView(aiohttp.web.View):
     async def get(self):
-        return aiohttp.web.json_response(
-            {"files": self.request["user"].get_list_of_file_names()}
-        )
+        configurations = [
+            configuration.to_json()
+            async for configuration in Configuration.q(self.request.app["db"]).find({})
+        ]
+        return aiohttp.web.json_response({"configurations": configurations})
 
     async def post(self):
         return await upload_file(self.request)
 
 
-async def download_file(request):
-    user = request["user"]
-    filename = request.match_info["filename"]
-    file_path = user.get_real_path_by_filename(filename)
-
+async def download_file(db, configuration_id):
+    configuration = await Configuration.q(db).get(configuration_id)
+    file_path = getattr(configuration, "real_path")
+    if file_path:
+        file_path = Path(file_path)
     if (file_path is None) or (not file_path.exists()):
-        return aiohttp.web.json_response(
-            {"error": f"configuration {filename} not exist"}, status=404
-        )
+        raise FileNotFoundError
     with open(file_path, "rb") as f:
         data = f.read()
-    return aiohttp.web.Response(
-        body=data,
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+    return configuration.filename, data
 
 
-class FileDetailsView(aiohttp.web.View):
+class СonfigurationsDetailsView(aiohttp.web.View):
     async def get(self):
-        return await download_file(self.request)
+        id = self.request.match_info["configuration_id"]
+        try:
+            configuration_id = ObjectId(id)
+        except InvalidId:
+            return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
+        try:
+            filename, data = await download_file(
+                self.request.app["db"], configuration_id
+            )
+        except (DocumentNotFoundError, FileNotFoundError):
+            return aiohttp.web.json_response(
+                {"error": f"file with id {configuration_id} not exist"}, status=404
+            )
+        return aiohttp.web.Response(
+            body=data,
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
 
 
 class UsersView(aiohttp.web.View):

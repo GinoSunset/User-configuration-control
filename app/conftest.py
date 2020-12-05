@@ -17,7 +17,7 @@ def test_conf():
 async def setup_db(test_conf):
     db = AsyncIOMotorClient(test_conf["database_uri"])
     yield db[test_conf["db_name"]]
-    await db.drop_database(test_conf["database_uri"].split("/")[-1])
+    await db.drop_database(test_conf["db_name"])
 
 
 @pytest.fixture
@@ -37,14 +37,22 @@ async def create_name_for_temp_user(setup_db):
 
 
 @pytest.fixture
-async def create_user_and_files(setup_db, tmp_path):
+async def create_user_and_configuration(setup_db, tmp_path):
     f = tmp_path / "some_confqwerty.ini"
     f.write_text("[ini]\nSome=Some")
     user = {
         "name": "Test user",
-        "api_key": "TestapiKey",
-        "files": [{"real_path": f.as_posix(), "filename": "some_conf.ini"}],
+        "api_key": str(uuid.uuid4),
     }
-    await setup_db.users.insert_one(user)
-    yield user, f
+    user_id = await setup_db.users.insert_one(user)
+    configuration = {
+        "filename": "some_conf.ini",
+        "hash": "this_is_right_hash",
+        "real_path": f.as_posix(),
+        "users": [user_id.inserted_id],
+    }
+    configuration_id = await setup_db.configurations.insert_one(configuration)
+
+    yield str(configuration_id.inserted_id), f
     await setup_db.users.delete_one({"name": user["name"]})
+    await setup_db.configurations.delete_one({"hash": "this_is_right_hash"})

@@ -1,10 +1,10 @@
 import uuid
 from pathlib import Path
+from _pytest.config import Config
 from bson import ObjectId
 from aiomongodel import (
     Document,
-    EmbDocField,
-    EmbeddedDocument,
+    RefField,
     ListField,
     StrField,
     ObjectIdField,
@@ -16,22 +16,12 @@ class User(Document):
     _id = ObjectIdField(default=lambda: ObjectId())
     api_key = StrField(required=True)
     name = StrField(required=True)
-    files = ListField(EmbDocField("app.db.Files"), default=lambda: [])
 
     class Meta:
         collection = "users"
         indexes = [
             IndexModel([("api_key", ASCENDING)], unique=True),
         ]
-
-    def get_list_of_file_names(self):
-        return [f.filename for f in self.files]
-
-    def get_real_path_by_filename(self, filename):
-        user_file = list(filter(lambda x: x.filename == filename, self.files))
-        if user_file:
-            return Path(user_file[0].real_path)
-        return None
 
     def generate_api_key(self):
         return uuid.uuid4()
@@ -43,6 +33,25 @@ class User(Document):
         return {"name": self.name, "id": str(self._id)}
 
 
-class Files(EmbeddedDocument):
+class Configuration(Document):
     real_path = StrField(required=True)
     filename = StrField(required=True)
+    hash = StrField(required=True)
+    users = ListField(RefField("app.db.User"), default=lambda: list())
+
+    class Meta:
+        collection = "configurations"
+        indexes = [
+            IndexModel(
+                [("hash", ASCENDING), ("filename", ASCENDING)],
+                name="hash_and_filename",
+                unique=True,
+            )
+        ]
+
+    def to_json(self, *args, **kwargs):
+        data = self.to_data(*args, **kwargs)
+        if "real_path" in data.keys():
+            data.pop("real_path")
+        data["_id"] = str(self._id)
+        return data

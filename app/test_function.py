@@ -1,6 +1,7 @@
 import json
 import io
 from aiohttp import FormData
+from bson.objectid import ObjectId
 from .app import create_app
 
 
@@ -8,10 +9,10 @@ class TestAuthCases:
     async def test_user_configuration(self, aiohttp_client, test_conf, loop):
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
-        r = await client.get("/api/v1/files/")
+        r = await client.get("/api/v1/configurations/")
         assert r.status == 401
         r = await client.get(
-            "api/v1/files/",
+            "api/v1/configurations/",
             headers={"Authorization": "Token Invalid_token"},
         )
         assert r.status == 401
@@ -20,7 +21,7 @@ class TestAuthCases:
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
         r = await client.get(
-            "api/v1/files/",
+            "api/v1/configurations/",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 200
@@ -34,26 +35,26 @@ class TestFilesViewCases:
         client = await aiohttp_client(app)
         filename = "test.conf"
         r = await client.get(
-            "api/v1/files/",
+            "api/v1/configurations/",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 200
         data = FormData()
         data.add_field("configuration", io.StringIO("test content"), filename=filename)
         await client.post(
-            "api/v1/files/",
+            "api/v1/configurations/",
             data=data,
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         r = await client.get(
-            "api/v1/files/",
+            "api/v1/configurations/",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         text = await r.read()
         response = json.loads(text)
-        assert response["files"] == [filename]
+        assert response["configurations"]
 
-    async def test_file_with_eq_name(
+    async def test_file_with_eq_hash_and_name(
         self, aiohttp_client, event_loop, create_user, test_conf
     ):
         app = await create_app(config=test_conf)
@@ -63,7 +64,7 @@ class TestFilesViewCases:
             "configuration", io.StringIO("test content"), filename="test_file"
         )
         await client.post(
-            "api/v1/files/",
+            "api/v1/configurations/",
             data=data,
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
@@ -72,7 +73,7 @@ class TestFilesViewCases:
             "configuration", io.StringIO("test content"), filename="test_file"
         )
         r = await client.post(
-            "api/v1/files/",
+            "api/v1/configurations/",
             data=data,
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
@@ -82,7 +83,7 @@ class TestFilesViewCases:
             "configuration", io.StringIO("test content"), filename="test_file_new"
         )
         r = await client.post(
-            "api/v1/files/",
+            "api/v1/configurations/",
             data=data,
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
@@ -98,7 +99,7 @@ class TestFilesViewCases:
             "configuration", io.StringIO("test content"), filename="test.conf"
         )
         r = await client.post(
-            "api/v1/files/",
+            "api/v1/configurations/",
             data=data,
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
@@ -113,30 +114,58 @@ class TestFilesViewCases:
         data.add_field(
             "configuration", io.StringIO("test content"), filename="test.conf"
         )
-        r = await client.post(
-            "api/v1/files/",
+        r = await client.get(
+            "api/v1/configurations/",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        start_configurations = await r.json()
+        await client.post(
+            "api/v1/configurations/",
             data=data,
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
-        saved_user = await r.json()
-        assert len(saved_user.get("files", [])) == len(create_user.get("files", [])) + 1
+        r = await client.get(
+            "api/v1/configurations/",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        after_saved_configuration = await r.json()
+        assert (
+            len(after_saved_configuration["configurations"])
+            == len(start_configurations["configurations"]) + 1
+        )
 
 
 class TestFileDetailsViewCases:
     async def test_get_file(
-        self, aiohttp_client, event_loop, create_user_and_files, test_conf
+        self,
+        aiohttp_client,
+        event_loop,
+        create_user,
+        create_user_and_configuration,
+        test_conf,
     ):
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
-        user, user_file = create_user_and_files
+        configuration_id, conf_file = create_user_and_configuration
         r = await client.get(
-            f"api/v1/files/{user['files'][0]['filename']}",
-            headers={"Authorization": f"Token {user['api_key']}"},
+            f"api/v1/configurations/{configuration_id}",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 200
         text = await r.text()
 
-        assert text == user_file.read_text()
+        assert text == conf_file.read_text()
+
+    async def test_details_config_with_bad_id(
+        self, aiohttp_client, event_loop, create_user, test_conf
+    ):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+        r = await client.get(
+            f"api/v1/configurations/not_exists_file",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 400
 
     async def test_not_exists_file(
         self, aiohttp_client, event_loop, create_user, test_conf
@@ -144,7 +173,7 @@ class TestFileDetailsViewCases:
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
         r = await client.get(
-            f"api/v1/files/not_exists_file",
+            f"api/v1/configurations/{ObjectId()}",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 404
