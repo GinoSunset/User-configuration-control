@@ -37,7 +37,7 @@ async def create_name_for_temp_user(setup_db):
 
 
 @pytest.fixture
-async def create_user_and_configuration(setup_db, tmp_path):
+async def create_configuration_with_user(setup_db, tmp_path):
     f = tmp_path / "some_confqwerty.ini"
     f.write_text("[ini]\nSome=Some")
     user = {
@@ -52,7 +52,7 @@ async def create_user_and_configuration(setup_db, tmp_path):
         "users": [user_id.inserted_id],
     }
     configuration_id = await setup_db.configurations.insert_one(configuration)
-
-    yield str(configuration_id.inserted_id), f
+    configuration.update({"id": str(configuration_id.inserted_id)})
+    yield configuration
     await setup_db.users.delete_one({"name": user["name"]})
     await setup_db.configurations.delete_one({"hash": "this_is_right_hash"})

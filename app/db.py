@@ -54,4 +54,10 @@ class Configuration(Document):
         if "real_path" in data.keys():
             data.pop("real_path")
         data["_id"] = str(self._id)
+        data["users"] = [str(user) for user in data["users"]]
         return data
+
+    def add_user(self, user: User):
+        if user._id in self.users:
+            return
+        self.users.append(user._id)

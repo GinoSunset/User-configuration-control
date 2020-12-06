@@ -86,8 +86,7 @@ class СonfigurationsView(aiohttp.web.View):
         return await upload_file(self.request)
 
 
-async def download_file(db, configuration_id):
-    configuration = await Configuration.q(db).get(configuration_id)
+async def download_file(configuration):
     file_path = getattr(configuration, "real_path")
     if file_path:
         file_path = Path(file_path)
@@ -98,25 +97,73 @@ async def download_file(db, configuration_id):
     return configuration.filename, data
 
 
-class СonfigurationsDetailsView(aiohttp.web.View):
+async def get_configuration_by_id(db, id) -> Configuration:
+    configuration_id = ObjectId(id)
+    return await Configuration.q(db).get(configuration_id)
+
+
+class СonfigurationDownloadView(aiohttp.web.View):
     async def get(self):
         id = self.request.match_info["configuration_id"]
         try:
-            configuration_id = ObjectId(id)
+            configuration = await get_configuration_by_id(self.request.app["db"], id)
+            filename, data = await download_file(configuration)
         except InvalidId:
             return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
-        try:
-            filename, data = await download_file(
-                self.request.app["db"], configuration_id
-            )
         except (DocumentNotFoundError, FileNotFoundError):
             return aiohttp.web.json_response(
-                {"error": f"file with id {configuration_id} not exist"}, status=404
+                {"error": f"file with id {id} not exist"}, status=404
             )
         return aiohttp.web.Response(
             body=data,
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
+
+
+class ConfigurationDetailView(aiohttp.web.View):
+    async def get(self):
+        id = self.request.match_info["configuration_id"]
+        try:
+            configuration = await get_configuration_by_id(self.request.app["db"], id)
+        except InvalidId:
+            return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
+        except DocumentNotFoundError:
+            return aiohttp.web.json_response(
+                {"error": f"file with id {id} not exist"}, status=404
+            )
+        return aiohttp.web.json_response(configuration.to_json())
+
+    async def put(self):
+        raw_id_conf = self.request.match_info["configuration_id"]
+        raw_id_user = self.request.match_info["user_id"]
+        try:
+            configuration = await get_configuration_by_id(
+                self.request.app["db"], raw_id_conf
+            )
+        except InvalidId:
+            return aiohttp.web.json_response(
+                {"error": f"bad configuration id format"}, status=400
+            )
+        except DocumentNotFoundError:
+            return aiohttp.web.json_response(
+                {"error": f"file with id {raw_id_conf} not exist"}, status=404
+            )
+        try:
+            user_id = ObjectId(raw_id_user)
+        except InvalidId:
+            return aiohttp.web.json_response(
+                {"error": f"bad user id format"}, status=400
+            )
+        try:
+            user = await User.q(self.request.app["db"]).get(user_id)
+        except DocumentNotFoundError:
+            return aiohttp.web.json_response(
+                {"error": f"user with id {raw_id_user} not exist"}, status=404
+            )
+        configuration.add_user(user)
+        configuration.validate()
+        await configuration.save(self.request.app["db"])
+        return aiohttp.web.json_response(configuration.to_json(), status=201)
 
 
 class UsersView(aiohttp.web.View):

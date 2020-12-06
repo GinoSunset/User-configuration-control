@@ -141,20 +141,19 @@ class TestFileDetailsViewCases:
         aiohttp_client,
         event_loop,
         create_user,
-        create_user_and_configuration,
+        create_configuration_with_user,
         test_conf,
     ):
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
-        configuration_id, conf_file = create_user_and_configuration
         r = await client.get(
-            f"api/v1/configurations/{configuration_id}",
+            f"api/v1/configurations/{create_configuration_with_user['id']}/download/",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 200
         text = await r.text()
-
-        assert text == conf_file.read_text()
+        with open(create_configuration_with_user["real_path"], "r") as f:
+            assert text == f.read()
 
     async def test_details_config_with_bad_id(
         self, aiohttp_client, event_loop, create_user, test_conf
@@ -178,6 +177,34 @@ class TestFileDetailsViewCases:
         )
         assert r.status == 404
 
+    async def test_add_user_to_config(
+        self,
+        aiohttp_client,
+        event_loop,
+        create_user,
+        create_configuration_with_user,
+        test_conf,
+    ):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+        r = await client.get(
+            f"api/v1/configurations/{create_configuration_with_user['id']}/",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 200
+        text = await r.text()
+        conf_before_add_user = json.loads(text)
+        r = await client.put(
+            f"api/v1/configurations/{create_configuration_with_user['id']}/users/{str(create_user['_id'])}",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 201
+        text = await r.text()
+        conf_after_add_user = json.loads(text)
+        assert len(conf_before_add_user["users"]) + 1 == len(
+            conf_after_add_user["users"]
+        )
+
 
 class TestCreateUserViewCases:
     async def test_api_create_user(
@@ -194,7 +221,7 @@ class TestCreateUserViewCases:
         assert "api_key" in json.loads(text).keys()
 
 
-class TestListUsersFileCases:
+class TestUsersCases:
     async def test_permision_on_list(self, create_user, aiohttp_client, test_conf):
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
@@ -235,3 +262,6 @@ class TestListUsersFileCases:
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 400
+
+    async def test_get_config_by_user_id(self):
+        assert False
