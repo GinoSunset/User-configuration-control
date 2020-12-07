@@ -17,3 +17,6 @@ def setup_routes(app):
     )
     app.router.add_view("/api/v1/users/", api.UsersView)
     app.router.add_view("/api/v1/users/{user_id}", api.UsersViewDetailsView)
+    app.router.add_view(
+        "/api/v1/users/{user_id}/configurations/", api.UserConfigutationsViewDetailsView
+    )

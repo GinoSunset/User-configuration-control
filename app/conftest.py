@@ -56,3 +56,19 @@ async def create_configuration_with_user(setup_db, tmp_path):
     yield configuration
     await setup_db.users.delete_one({"name": user["name"]})
     await setup_db.configurations.delete_one({"hash": "this_is_right_hash"})
+
+
+@pytest.fixture
+async def create_configuration(setup_db, tmp_path):
+    f = tmp_path / "some_confqwerty_new.ini"
+    f.write_text("[ini]\nSome=Some\nFormat=INI")
+    configuration = {
+        "filename": "some_confqwerty_new.ini",
+        "hash": "this_is_too_right_hash",
+        "real_path": f.as_posix(),
+        "users": [],
+    }
+    configuration_id = await setup_db.configurations.insert_one(configuration)
+    configuration.update({"id": str(configuration_id.inserted_id)})
+    yield configuration
+    await setup_db.configurations.delete_one({"hash": "this_is_right_hash"})

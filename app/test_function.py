@@ -263,5 +263,29 @@ class TestUsersCases:
         )
         assert r.status == 400
 
-    async def test_get_config_by_user_id(self):
-        assert False
+    async def test_get_configs_by_user_id(
+        self,
+        create_user,
+        aiohttp_client,
+        test_conf,
+        create_configuration_with_user,
+        create_configuration,
+    ):
+        app = await create_app(config=test_conf)
+        client = await aiohttp_client(app)
+        await client.put(
+            f"api/v1/configurations/{create_configuration_with_user['id']}/users/{str(create_user['_id'])}",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        await client.put(
+            f"api/v1/configurations/{create_configuration['id']}/users/{str(create_user['_id'])}",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        r = await client.get(
+            f"/api/v1/users/{str(create_user['_id'])}/configurations/",
+            headers={"Authorization": f"Token {create_user['api_key']}"},
+        )
+        assert r.status == 200
+        text = await r.text()
+        user_conf = json.load(text)
+        assert len(user_conf) == 2

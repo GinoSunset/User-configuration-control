@@ -207,3 +207,25 @@ class UsersViewDetailsView(aiohttp.web.View):
                 {"error": f"user with id {user_id} not exist"}, status=404
             )
         return aiohttp.web.json_response(user.to_json())
+
+
+class UserConfigutationsViewDetailsView(aiohttp.web.View):
+    async def get(self):
+        id = self.request.match_info["user_id"]
+        try:
+            user_id = ObjectId(id)
+        except InvalidId:
+            return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
+        try:
+            user = await User.q(self.request.app["db"]).get(user_id)
+        except DocumentNotFoundError:
+            return aiohttp.web.json_response(
+                {"error": f"user with id {user_id} not exist"}, status=404
+            )
+        configuration_query = Configuration.q(self.request.app["db"]).find(
+            {"users": user_id}
+        )
+        configururations = [
+            configuration.to_json() async for configuration in configuration_query
+        ]
+        return aiohttp.web.json_response(Configuration)
