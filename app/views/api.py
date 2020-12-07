@@ -228,4 +228,4 @@ class UserConfigutationsViewDetailsView(aiohttp.web.View):
         configururations = [
             configuration.to_json() async for configuration in configuration_query
         ]
-        return aiohttp.web.json_response(Configuration)
+        return aiohttp.web.json_response(configururations)

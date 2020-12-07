@@ -161,7 +161,7 @@ class TestFileDetailsViewCases:
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
         r = await client.get(
-            f"api/v1/configurations/not_exists_file",
+            f"api/v1/configurations/not_exists_file/",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 400
@@ -287,5 +287,5 @@ class TestUsersCases:
         )
         assert r.status == 200
         text = await r.text()
-        user_conf = json.load(text)
+        user_conf = json.loads(text)
         assert len(user_conf) == 2
