@@ -21,8 +21,9 @@ API
         curl --location --request POST 'http://localhost:8000/api/v1/users/' \
         --form 'name=12345'
     ```
-* `GET /api/v1/files/` - returns a list of files for the authorized user
-* `POST /api/v1/files/ ` data =`files={"configuration": ("filename", "binar data"}` - save configuration for the authorized user. Data is Multipart/form-data file. If file saved return 201 status code and  list of files for the authorized user. Example: 
+* `POST /api/v1/users/<user_id>/configurations/` - search in the database in the collection of configurations that the user is a member
+* `GET /api/v1/configuration/` - returns a list of all configuration 
+* `POST /api/v1/configuration/ ` data =`files={"configuration": ("filename", "binar data"}` - save configuration with empty list users. Data is Multipart/form-data file. If file saved return 201 status code. Example: 
     ```python
     import requests
     requests.post(
@@ -31,7 +32,14 @@ API
                 headers={"Authorization": f"Token MySercretToken"},
             )
     ```
-* `GET /api/v1/files/<name_file_to_download>` - return file for the authorized user is exists
+* `GET /api/v1/files/<id_configuration>/download` - download conf file by id
+* `PUT /api/v1/files/<id_configuration>/users/<user_id>}` - add user to list **users** in configuration. Example:
+    ```cmd
+    curl --location --request PUT 'http://localhost:8000/api/v1/configurations/5fce7c5e84fc379b2b23f275/users/5fce7bf684fc379b2b23f274' \
+    --header 'Authorization: Token 6a4fc8ec-3930-1334-a333-640b8454e2e1'
+    ```
+
+
 
 How to run
 ----------
