@@ -1,6 +1,8 @@
+import hashlib
 import json
 import io
 from aiohttp import FormData
+from attr import has
 from bson.objectid import ObjectId
 from .app import create_app
 
@@ -34,13 +36,17 @@ class TestFilesViewCases:
         app = await create_app(config=test_conf)
         client = await aiohttp_client(app)
         filename = "test.conf"
+        content = "test content"
+        hash_content = hashlib.new(test_conf["hash_func"])
+        hash_content.update(content.encode())
+
         r = await client.get(
             "api/v1/configurations/",
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         assert r.status == 200
         data = FormData()
-        data.add_field("configuration", io.StringIO("test content"), filename=filename)
+        data.add_field("configuration", io.StringIO(content), filename=filename)
         await client.post(
             "api/v1/configurations/",
             data=data,
@@ -52,7 +58,10 @@ class TestFilesViewCases:
         )
         text = await r.read()
         response = json.loads(text)
-        assert response["configurations"]
+        assert isinstance(response, list)
+        assert response[0]["filename"] == filename
+
+        assert response[0]["hash"] == hash_content.hexdigest()
 
     async def test_file_with_eq_hash_and_name(
         self, aiohttp_client, event_loop, create_user, test_conf
@@ -129,10 +138,7 @@ class TestFilesViewCases:
             headers={"Authorization": f"Token {create_user['api_key']}"},
         )
         after_saved_configuration = await r.json()
-        assert (
-            len(after_saved_configuration["configurations"])
-            == len(start_configurations["configurations"]) + 1
-        )
+        assert len(after_saved_configuration) == len(start_configurations) + 1
 
 
 class TestFileDetailsViewCases:

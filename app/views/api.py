@@ -79,7 +79,7 @@ class ConfigurationsView(aiohttp.web.View):
             configuration.to_json()
             async for configuration in Configuration.q(self.request.app["db"]).find({})
         ]
-        return aiohttp.web.json_response({"configurations": configurations})
+        return aiohttp.web.json_response(configurations)
 
     async def post(self):
         return await upload_file(self.request)
