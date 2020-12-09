@@ -2,7 +2,6 @@ import aiohttp
 import string
 import random
 import hashlib
-import os
 from pathlib import Path
 
 from aiomongodel.errors import DuplicateKeyError, DocumentNotFoundError
@@ -74,7 +73,7 @@ async def upload_file(request):
     )
 
 
-class СonfigurationsView(aiohttp.web.View):
+class ConfigurationsView(aiohttp.web.View):
     async def get(self):
         configurations = [
             configuration.to_json()
@@ -92,27 +91,26 @@ async def download_file(configuration):
         file_path = Path(file_path)
     if (file_path is None) or (not file_path.exists()):
         raise FileNotFoundError
-    with open(file_path, "rb") as f:
-        data = f.read()
+    data = file_path.read_bytes()
     return configuration.filename, data
 
 
-async def get_configuration_by_id(db, id) -> Configuration:
-    configuration_id = ObjectId(id)
+async def get_configuration_by_id(db, id_) -> Configuration:
+    configuration_id = ObjectId(id_)
     return await Configuration.q(db).get(configuration_id)
 
 
-class СonfigurationDownloadView(aiohttp.web.View):
+class ConfigurationDownloadView(aiohttp.web.View):
     async def get(self):
-        id = self.request.match_info["configuration_id"]
+        id_ = self.request.match_info["configuration_id"]
         try:
-            configuration = await get_configuration_by_id(self.request.app["db"], id)
+            configuration = await get_configuration_by_id(self.request.app["db"], id_)
             filename, data = await download_file(configuration)
         except InvalidId:
             return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
         except (DocumentNotFoundError, FileNotFoundError):
             return aiohttp.web.json_response(
-                {"error": f"file with id {id} not exist"}, status=404
+                {"error": f"file with id {id_} not exist"}, status=404
             )
         return aiohttp.web.Response(
             body=data,
@@ -209,15 +207,15 @@ class UsersViewDetailsView(aiohttp.web.View):
         return aiohttp.web.json_response(user.to_json())
 
 
-class UserConfigutationsViewDetailsView(aiohttp.web.View):
+class UserConfigurationsViewDetailsView(aiohttp.web.View):
     async def get(self):
-        id = self.request.match_info["user_id"]
+        id_ = self.request.match_info["user_id"]
         try:
-            user_id = ObjectId(id)
+            user_id = ObjectId(id_)
         except InvalidId:
             return aiohttp.web.json_response({"error": f"bad id format"}, status=400)
         try:
-            user = await User.q(self.request.app["db"]).get(user_id)
+            _ = await User.q(self.request.app["db"]).get(user_id)
         except DocumentNotFoundError:
             return aiohttp.web.json_response(
                 {"error": f"user with id {user_id} not exist"}, status=404
@@ -225,7 +223,7 @@ class UserConfigutationsViewDetailsView(aiohttp.web.View):
         configuration_query = Configuration.q(self.request.app["db"]).find(
             {"users": user_id}
         )
-        configururations = [
+        configurations = [
             configuration.to_json() async for configuration in configuration_query
         ]
-        return aiohttp.web.json_response(configururations)
+        return aiohttp.web.json_response(configurations)

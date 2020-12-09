@@ -3,7 +3,7 @@ from .views import api
 
 def setup_routes(app):
     app.router.add_route("GET", "/api/v1/", api.index)
-    app.router.add_view("/api/v1/configurations/", api.СonfigurationsView)
+    app.router.add_view("/api/v1/configurations/", api.ConfigurationsView)
     app.router.add_view(
         "/api/v1/configurations/{configuration_id}/", api.ConfigurationDetailView
     )
@@ -13,10 +13,10 @@ def setup_routes(app):
     )
     app.router.add_view(
         "/api/v1/configurations/{configuration_id}/download/",
-        api.СonfigurationDownloadView,
+        api.ConfigurationDownloadView,
     )
     app.router.add_view("/api/v1/users/", api.UsersView)
     app.router.add_view("/api/v1/users/{user_id}", api.UsersViewDetailsView)
     app.router.add_view(
-        "/api/v1/users/{user_id}/configurations/", api.UserConfigutationsViewDetailsView
+        "/api/v1/users/{user_id}/configurations/", api.UserConfigurationsViewDetailsView
     )
