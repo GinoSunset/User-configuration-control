@@ -21,7 +21,7 @@ API
         curl --location --request POST 'http://localhost:8000/api/v1/users/' \
         --form 'name=12345'
     ```
-* `POST /api/v1/users/<user_id>/configurations/` - search in the database in the collection of configurations that the user is a member
+* `GET /api/v1/users/<user_id>/configurations/` - search in the database in the collection of configurations that the user is a member
 * `GET /api/v1/configuration/` - returns a list of all configuration 
 * `POST /api/v1/configuration/ ` data =`files={"configuration": ("filename", "binar data"}` - save configuration with empty list users. Data is Multipart/form-data file. If file saved return 201 status code. Example: 
     ```python
@@ -76,6 +76,7 @@ configuration file has yaml format:
 - `site_name` - site name by defalt is "Control configure site"
 - `database_uri` - url format path to db by default  mongodb://localhost:27017
 - `media_dir` - folder to save users file by defalt is  __media__ in project folder
+- `hash_method` - used hash function from hashlib. By default **sha1**
 
 
 Testing
