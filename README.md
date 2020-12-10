@@ -1,6 +1,6 @@
 USER CONFIGURATION CONTROL
 =============
-project to upload and save configuration files from user.
+project to upload and save configuration files. Associate conf with user. 
 
 Requirements
 -----------
